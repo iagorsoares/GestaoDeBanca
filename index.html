@@ -46,18 +46,19 @@ button,input{font-family:inherit}
 .pg.act{display:block}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#2dda6f 0%,#00c853 30%,#00a846 65%,#007a32 100%);border-radius:20px;padding:22px 20px 18px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(0,168,70,0.32)}
-.hero::before{content:'';position:absolute;top:-50px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.2) 0%,transparent 65%);pointer-events:none}
-.hero::after{content:'';position:absolute;bottom:-55px;left:-25px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(0,0,0,0.12) 0%,transparent 65%);pointer-events:none}
-.hlbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.65);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.ldot{width:5px;height:5px;border-radius:50%;background:#bbf7d0}
-.hcur{font-size:11px;color:rgba(255,255,255,0.55);font-weight:500;display:block;margin-bottom:2px;font-variant-numeric:tabular-nums}
+.hero{background:linear-gradient(145deg,#1a1f2e 0%,#222836 50%,#141820 100%);border-radius:20px;padding:22px 20px 18px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,0.28)}
+.hero::before{content:'';position:absolute;top:-60px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,83,0.18) 0%,transparent 65%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-55px;left:-25px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(0,168,70,0.1) 0%,transparent 65%);pointer-events:none}
+.hdate{font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:14px;letter-spacing:.02em}
+.hlbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ldot{width:5px;height:5px;border-radius:50%;background:#4ade80}
+.hcur{font-size:11px;color:rgba(255,255,255,0.4);font-weight:500;display:block;margin-bottom:2px;font-variant-numeric:tabular-nums}
 .hval{font-size:40px;font-weight:800;color:#fff;letter-spacing:-1.5px;line-height:1;font-variant-numeric:tabular-nums}
-.hdiv{height:1px;background:rgba(255,255,255,0.15);margin:14px 0 12px}
-.hmeta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:rgba(255,255,255,0.7);font-weight:600}
-.hbadge{background:rgba(255,255,255,0.2);color:#fff;padding:4px 11px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid rgba(255,255,255,0.25)}
-.mbar{height:5px;background:rgba(255,255,255,0.18);border-radius:99px;overflow:hidden;margin-top:9px}
-.mfill{height:100%;background:rgba(255,255,255,0.85);border-radius:99px;width:0%;transition:width .5s}
+.hdiv{height:1px;background:rgba(255,255,255,0.08);margin:14px 0 12px}
+.hmeta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:rgba(255,255,255,0.5);font-weight:600}
+.hbadge{background:rgba(0,200,83,0.18);color:#4ade80;padding:4px 11px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid rgba(0,200,83,0.25)}
+.mbar{height:5px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;margin-top:9px}
+.mfill{height:100%;background:linear-gradient(90deg,#00a846,#00c853);border-radius:99px;width:0%;transition:width .5s}
 
 /* CARD */
 .card{background:var(--card);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.04)}
@@ -157,6 +158,7 @@ input::placeholder{color:var(--txt4)}
 <!-- PAINEL -->
 <div id="p1" class="pg act">
   <div class="hero">
+    <div class="hdate" id="hero-date"></div>
     <div class="hlbl"><span class="ldot"></span>Banca Atual</div>
     <span class="hcur">BRL</span>
     <div class="hval" id="banca-topo">0,00</div>
@@ -357,6 +359,11 @@ function save(){
 }
 
 function ui(){
+  // data atual
+  const now=new Date();
+  const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const MESES2=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  document.getElementById('hero-date').textContent=DIAS[now.getDay()]+', '+now.getDate()+' de '+MES[now.getMonth()];
   document.getElementById('banca-topo').textContent=fmtN(S.banca);
   document.getElementById('banca-ref').textContent='Ref: '+fmt(S.bancaInicioDia);
   document.getElementById('cfg-meta').value=S.metaPct;
