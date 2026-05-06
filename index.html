@@ -106,17 +106,18 @@ input::placeholder{color:var(--txt4)}
 .calttl{font-size:15px;font-weight:800;color:var(--txt)}
 .calarr{width:30px;height:30px;border-radius:8px;background:#f1f4f1;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;color:var(--txt2);user-select:none}
 .calarr:active{opacity:.7}
-.calwk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.calwk{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
 .calwd{text-align:center;font-size:9px;font-weight:800;color:var(--txt4);text-transform:uppercase;padding:2px 0}
-.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cald{aspect-ratio:1;border-radius:8px;background:rgba(255,255,255,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(0,0,0,0.05)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cald{aspect-ratio:1;border-radius:10px;background:rgba(255,255,255,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(0,0,0,0.05);padding:2px 1px}
 .cald:active{opacity:.7}
-.cald.today{border:1.5px solid var(--grn)}
+.cald.today{border:2px solid var(--grn)}
 .cald.win{background:var(--grn3);border-color:var(--grn4);color:var(--grn)}
 .cald.loss{background:var(--red2);border-color:var(--red3);color:var(--red)}
 .cald.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
-.cdn{font-size:11px;font-weight:700}
-.cdv{font-size:6px;margin-top:1px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cdn{font-size:12px;font-weight:800;line-height:1}
+.cdv{font-size:7px;margin-top:2px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.2}
+.cdp{font-size:7px;font-weight:700;opacity:.8;line-height:1}
 .calsum{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.05)}
 .csi{flex:1;background:#f8faf8;border-radius:10px;padding:9px;text-align:center;border:1px solid rgba(0,0,0,0.04)}
 .csl{font-size:9px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
@@ -397,9 +398,16 @@ function cal(){
     const v=S.historico[k]||0;
     const cl=v>0?'win':v<0?'loss':'';
     const isTd=k===ts?'today':'';
-    const dv=v!==0?(v>0?'+':'')+fmtN(v):'';
+    // valor formatado abreviado (ex: +23,50 → +23)
+    const dv=v!==0?(v>0?'+':'')+fmtN(Math.abs(v)<100?v:Math.round(v)):'';
+    // % da meta: usa bancaInicioDia do dia (não temos histórico disso, então calcula sobre a banca atual)
+    let pctStr='';
+    if(v!==0&&S.bancaInicioDia>0){
+      const pct=(v/S.bancaInicioDia)*100;
+      pctStr=(pct>=0?'+':'')+pct.toFixed(1)+'%';
+    }
     if(v>0){pos++;res+=v;}if(v<0){neg++;res+=v;}
-    grid.innerHTML+=`<div class="cald ${cl} ${isTd}" onclick="openEdit('${k}')"><span class="cdn">${d}</span><span class="cdv">${dv}</span></div>`;
+    grid.innerHTML+=`<div class="cald ${cl} ${isTd}" onclick="openEdit('${k}')"><span class="cdn">${d}</span>${dv?`<span class="cdv">${dv}</span>`:''} ${pctStr?`<span class="cdp">${pctStr}</span>`:''}</div>`;
   }
   document.getElementById('cal-pos').textContent=pos;
   document.getElementById('cal-neg').textContent=neg;
