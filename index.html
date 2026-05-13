@@ -763,10 +763,11 @@ function abrirConfirm(titulo,sub,callback){
 window.closeModal=id=>document.getElementById(id).classList.remove('open');
 
 // ─── RESULTADO POR MÊS ─────────────────────────────────────────────────────
-// Lucro mensal = soma dos lucros diários fechados (S.historico).
-// Cada lucro diário = banca_final_dia - bancaInicioDia daquele dia.
-// % mensal = lucroMes / bancaInicioDia do primeiro dia fechado do mês.
-// Dias em aberto (não fechados) não entram no cálculo.
+// Fórmula correta do lucro real mensal (mês atual):
+//   lucro = banca_atual + sacado_no_mês - depositado_no_mês - banca_início_mês
+//
+// Para meses passados: soma dos lucros diários fechados.
+// Base do %: bancaInicioDia do primeiro dia fechado do mês.
 function mesList(){
   const mesesComDados=new Set();
   Object.keys(S.historico).forEach(k=>{
@@ -778,26 +779,36 @@ function mesList(){
     return;
   }
   const agora=new Date();
+  const mkAtual=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0');
   const chaves=[...mesesComDados].sort().reverse();
   el.innerHTML=chaves.map(mk=>{
     const[y,m]=mk.split('-');
     const ano=parseInt(y),mes=parseInt(m)-1;
-    const isAtual=(ano===agora.getFullYear()&&mes===agora.getMonth());
-    // Lucro = soma dos lucros diários fechados do mês
-    const lucroMes=Object.keys(S.historico)
-      .filter(k=>k.startsWith(mk))
-      .reduce((a,k)=>a+S.historico[k],0);
-    // Base = bancaInicioDia do primeiro dia fechado do mês (para % coerente)
+    const isAtual=mk===mkAtual;
+    // Movimentos financeiros do mês
+    const depMes=S.movs.filter(v=>v.data&&v.data.startsWith(mk)&&v.tipo==='DEP').reduce((a,v)=>a+v.valor,0);
+    const saqMes=S.movs.filter(v=>v.data&&v.data.startsWith(mk)&&v.tipo==='SAQ').reduce((a,v)=>a+v.valor,0);
+    // Base = bancaInicioDia do primeiro dia fechado do mês
     const diasMeta=Object.keys(S.historicoMeta).filter(k=>k.startsWith(mk)).sort();
     const baseMes=diasMeta.length>0?S.historicoMeta[diasMeta[0]]:0;
-    const pctMes=baseMes>0?(lucroMes/baseMes)*100:0;
+    let lucroMes;
+    if(isAtual){
+      // Mês atual: lucro = banca_atual + sacado_mês - depositado_mês - banca_início_mês
+      lucroMes=S.banca+saqMes-depMes-baseMes;
+    }else{
+      // Meses passados: soma dos lucros diários fechados
+      lucroMes=Object.keys(S.historico)
+        .filter(k=>k.startsWith(mk))
+        .reduce((a,k)=>a+S.historico[k],0);
+    }
+    // % = lucro / total depositado no mês (capital real colocado como base de risco)
+    // Se não houve depósito no mês, usa a banca de início do mês como base
+    const basePct=depMes>0?depMes:baseMes;
+    const pctMes=basePct>0?(lucroMes/basePct)*100:0;
     const posMes=lucroMes>=0;
     const cor=posMes?'var(--grn)':'var(--red)';
-    const diasFechados=Object.keys(S.historico).filter(k=>k.startsWith(mk)).length;
-    const labelExtra=isAtual
-      ?` · ${diasFechados} dia${diasFechados!==1?'s':''} fechado${diasFechados!==1?'s':''}`:'';
     return `<div class="mrow">
-      <div><span class="mrow-nome">${MES[mes]}</span><span class="mrow-ano">${ano}${labelExtra}</span></div>
+      <div><span class="mrow-nome">${MES[mes]}</span><span class="mrow-ano">${ano}</span></div>
       <div class="mrow-right">
         <span class="mrow-pct" style="color:${cor}">${posMes?'+':''}${pctMes.toFixed(1)}%</span>
         <span class="mrow-val">${posMes?'+':''}${fmt(lucroMes)}</span>
