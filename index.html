@@ -399,13 +399,13 @@ async function load(){
   sb('☁️ Carregando...','saving');
   try{
     const snap=await getDoc(REF);
-    if(snap.exists()){S=mergeState(snap.data());}
+    if(snap.exists()){S=mergeStateV2(snap.data());}
     virarDiaSeNecessario();
     sb('✅ Sincronizado','ok');hb();ui();
-    if(!listening){listening=true;onSnapshot(REF,s=>{if(s.exists()){S=mergeState(s.data());ui();}});}
+    if(!listening){listening=true;onSnapshot(REF,s=>{if(s.exists()){S=mergeStateV2(s.data());ui();}});}
   }catch(e){
     sb('❌ Erro — verifique a internet','err');
-    const lc=localStorage.getItem('banca_v2');if(lc){S=mergeState(JSON.parse(lc));}
+    const lc=localStorage.getItem('banca_v2');if(lc){S=mergeStateV2(JSON.parse(lc));}
     virarDiaSeNecessario();ui();
   }
 }
