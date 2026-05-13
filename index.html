@@ -388,10 +388,6 @@ const db=getFirestore(initializeApp({
 }));
 const REF=doc(db,'banca','iago');
 
-// ─── HELPERS DE DATA ───────────────────────────────────────────────────────
-// FIX: usa horário local, não UTC. toISOString() retornava o dia seguinte
-// para UTC-3 após às 21h, causando registro na data errada e quebrando
-// bancaInicioDia prematuramente.
 function hoje(){
   const d=new Date();
   const y=d.getFullYear();
@@ -404,10 +400,6 @@ const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto
 const fmt=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmtN=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-// ─── ESTADO ────────────────────────────────────────────────────────────────
-// FIX: DFLT agora inclui diaAtivo. Antes, a ausência desse campo fazia
-// mergeState devolver um objeto sem diaAtivo, e virarDiaSeNecessario
-// tratava todo carregamento como "primeira vez", sobrescrevendo bancaInicioDia.
 const DFLT={
   banca:0,
   bancaInicioDia:0,
@@ -421,14 +413,9 @@ const DFLT={
 let S={...DFLT};
 let saveTimer=null,listening=false;
 
-// FIX: calY/calM recalculados a cada render via hojeAtual(), não fixados
-// na inicialização do módulo. Evita que "hoje" fique desatualizado se o app
-// ficar aberto passando da meia-noite.
 let calY=new Date().getFullYear();
 let calM=new Date().getMonth();
 
-// ─── MERGE STATE ───────────────────────────────────────────────────────────
-// FIX: função única e completa — sem a versão "antiga" que ignorava diaAtivo.
 function mergeState(d){
   return {
     banca:         d.banca??0,
@@ -442,17 +429,12 @@ function mergeState(d){
   };
 }
 
-// ─── SYNC BAR ──────────────────────────────────────────────────────────────
 function sb(msg,cls){
   const b=document.getElementById('syncBar');
   b.textContent=msg;b.className='show '+cls;b.style.display='block';
 }
 function hb(){setTimeout(()=>{document.getElementById('syncBar').style.display='none';},2000);}
 
-// ─── VIRAR DIA ─────────────────────────────────────────────────────────────
-// Único ponto de controle da virada de dia.
-// Mesmo dia: não toca em nada.
-// Novo dia (ou primeiro uso): reseta entradas e captura bancaInicioDia.
 function virarDiaSeNecessario(){
   const k=hoje();
   if(!S.diaAtivo||S.diaAtivo!==k){
@@ -462,7 +444,6 @@ function virarDiaSeNecessario(){
   }
 }
 
-// ─── LOAD ──────────────────────────────────────────────────────────────────
 async function load(){
   sb('☁️ Carregando...','saving');
   try{
@@ -475,8 +456,6 @@ async function load(){
       onSnapshot(REF,s=>{
         if(s.exists()){
           S=mergeState(s.data());
-          // FIX: onSnapshot também verifica virada de dia — necessário quando
-          // o app está aberto em dois dispositivos e um deles passa da meia-noite.
           virarDiaSeNecessario();
           ui();
         }
@@ -490,7 +469,6 @@ async function load(){
   }
 }
 
-// ─── SAVE ──────────────────────────────────────────────────────────────────
 function save(){
   clearTimeout(saveTimer);sb('💾 Salvando...','saving');
   saveTimer=setTimeout(async()=>{
@@ -502,7 +480,6 @@ function save(){
   },700);
 }
 
-// ─── UI PRINCIPAL ──────────────────────────────────────────────────────────
 function ui(){
   const now=new Date();
   const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -511,7 +488,6 @@ function ui(){
   document.getElementById('banca-topo').textContent=fmtN(S.banca);
   document.getElementById('cfg-meta').value=S.metaPct;
 
-  // Gales — sempre usando bancaInicioDia como referência fixa do dia
   const ref=S.bancaInicioDia;
   document.getElementById('banca-ref').textContent='Ref: '+fmt(ref);
   document.getElementById('ref-atual').textContent=fmt(ref);
@@ -520,7 +496,6 @@ function ui(){
   document.getElementById('t2').textContent=fmt(t1*2);
   document.getElementById('t3').textContent=fmt(t1*4);
 
-  // Meta e barra de progresso
   const meta=ref*(S.metaPct/100);
   const ganho=S.entradasDia.reduce((a,e)=>a+e.lucro,0);
   document.getElementById('meta-label').textContent='Meta '+S.metaPct+'% · '+fmt(meta);
@@ -528,7 +503,6 @@ function ui(){
   document.getElementById('meta-fill').style.width=
     Math.min(meta>0?(ganho/meta)*100:0,100)+'%';
 
-  // Lista de entradas — FIX: botão ↩ na última entrada para desfazer
   const h=document.getElementById('lista-hoje');
   if(!S.entradasDia.length){
     h.innerHTML='<div class="empty"><span class="ei">📋</span>Nenhuma entrada hoje</div>';
@@ -548,7 +522,6 @@ function ui(){
   dash();cal();mesList();
 }
 
-// ─── DASH / ROI ────────────────────────────────────────────────────────────
 function dash(){
   let totalDep=0,totalSaq=0;
   S.movs.forEach(m=>m.tipo==='DEP'?totalDep+=m.valor:totalSaq+=m.valor);
@@ -563,13 +536,11 @@ function dash(){
   pill.className='roi-pct-pill '+(lucroReal>=0?'pos':'neg');
 }
 
-// ─── CALENDÁRIO ────────────────────────────────────────────────────────────
 function cal(){
   document.getElementById('cal-title').textContent=MES[calM]+' '+calY;
   const grid=document.getElementById('cal-render');
   const first=new Date(calY,calM,1).getDay();
   const total=new Date(calY,calM+1,0).getDate();
-  // FIX: hoje() recalculado aqui — não usa variável fixada na carga do módulo
   const ts=hoje();
   grid.innerHTML='';
   for(let i=0;i<first;i++)grid.innerHTML+='<div class="cald empty"></div>';
@@ -599,28 +570,22 @@ function cal(){
 window.calPrev=()=>{calM--;if(calM<0){calM=11;calY--;}cal();}
 window.calNext=()=>{calM++;if(calM>11){calM=0;calY++;}cal();}
 
-// ─── REGISTRAR ENTRADA ─────────────────────────────────────────────────────
 window.registrarEntrada=()=>{
   const v=parseFloat(document.getElementById('in-banca-final').value);
-  // FIX: rejeita valores inválidos, negativos ou iguais à banca atual
   if(isNaN(v)||v<0||v===S.banca)return;
 
   S.entradasDia.push({lucro:v-S.banca,hora:new Date().toLocaleTimeString('pt-BR').slice(0,5)});
   S.banca=v;
   document.getElementById('in-banca-final').value='';
 
-  // FIX: feedback visual — flash verde no card de entrada ao confirmar
   const card=document.getElementById('card-entrada');
   card.classList.remove('flash-ok');
-  void card.offsetWidth; // força reflow para reiniciar a animação
+  void card.offsetWidth;
   card.classList.add('flash-ok');
 
   save();ui();
 }
 
-// ─── DESFAZER ÚLTIMA ENTRADA ───────────────────────────────────────────────
-// FIX: remove a última entrada e reverte a banca ao valor anterior,
-// sem precisar fechar e reabrir o dia.
 window.desfazerUltimaEntrada=()=>{
   if(!S.entradasDia.length)return;
   const ultima=S.entradasDia[S.entradasDia.length-1];
@@ -629,8 +594,6 @@ window.desfazerUltimaEntrada=()=>{
   save();ui();
 }
 
-// ─── FECHAR DIA (com confirmação) ─────────────────────────────────────────
-// FIX: exige confirmação antes de limpar as entradas do dia.
 window.pedirFecharDia=()=>{
   if(!S.entradasDia.length)return;
   const lucroTotal=S.banca-S.bancaInicioDia;
@@ -646,16 +609,12 @@ function fecharDia(){
   if(!S.entradasDia.length)return;
   const k=hoje();
   const lucroTotal=S.banca-S.bancaInicioDia;
-  // Salva referência de início do dia apenas na primeira vez (para % no calendário)
   if(!S.historicoMeta[k])S.historicoMeta[k]=S.bancaInicioDia;
-  // Sempre sobrescreve — múltiplos fechamentos no mesmo dia atualizam o resultado
   S.historico[k]=lucroTotal;
   S.entradasDia=[];
   save();ui();
 }
 
-// ─── MOVIMENTAR (com confirmação e validação) ─────────────────────────────
-// FIX: confirmação antes de qualquer movimentação + validação de saque maior que banca.
 window.pedirMovimentar=tipo=>{
   const v=parseFloat(document.getElementById('mov-val').value);
   if(isNaN(v)||v<=0)return;
@@ -675,16 +634,11 @@ window.pedirMovimentar=tipo=>{
 function executarMovimentar(tipo,v){
   S.movs.push({tipo,valor:v,data:hoje()});
   S.banca+=tipo==='DEP'?v:-v;
-  // Atualiza bancaInicioDia apenas se não houver entradas no dia ainda
   if(!S.entradasDia.length)S.bancaInicioDia=S.banca;
   document.getElementById('mov-val').value='';
   save();ui();
 }
 
-// ─── CORRIGIR REFERÊNCIA DO DIA ────────────────────────────────────────────
-// Permite corrigir manualmente bancaInicioDia quando o valor salvo está errado.
-// Também corrige historicoMeta do dia de hoje para que o % do calendário
-// reflita a referência correta ao fechar o dia.
 window.corrigirReferencia=()=>{
   const v=parseFloat(document.getElementById('corr-ref').value);
   if(isNaN(v)||v<=0)return;
@@ -693,7 +647,6 @@ window.corrigirReferencia=()=>{
     `Alterar banca de início de hoje de ${fmt(S.bancaInicioDia)} para ${fmt(v)}.\nOs gales e a meta do dia serão recalculados.`,
     ()=>{
       S.bancaInicioDia=v;
-      // Atualiza também historicoMeta para que o % do dia fique correto ao fechar
       const k=hoje();
       S.historicoMeta[k]=v;
       document.getElementById('corr-ref').value='';
@@ -715,7 +668,6 @@ window.go=(p,el)=>{
   el.classList.add('act');
 }
 
-// ─── MODAL EDITAR DIA ──────────────────────────────────────────────────────
 let editTarget='';
 window.openEdit=date=>{
   editTarget=date;
@@ -726,33 +678,24 @@ window.openEdit=date=>{
   document.getElementById('modal-edit').classList.add('open');
 }
 
-// FIX: editar dia passado NÃO ajusta a banca atual — a banca real já foi
-// consequência daquele dia. Só ajusta se for o dia de hoje.
-// FIX: garante que historicoMeta existe para a data editada, para que o %
-// no calendário seja exibido corretamente mesmo para dias inseridos manualmente.
 window.confirmarEdicao=()=>{
   const novo=parseFloat(document.getElementById('edit-val').value);
   if(isNaN(novo))return;
   const antigo=S.historico[editTarget]||0;
-  // Ajusta banca atual apenas se for edição do dia de hoje
   if(editTarget===hoje()){
     S.banca=(S.banca-antigo)+novo;
   }
   S.historico[editTarget]=novo;
-  // Cria historicoMeta se ausente, para que o % apareça no calendário
   if(!S.historicoMeta[editTarget]){
-    // Para hoje usa bancaInicioDia; para dias passados estima pela banca implícita
     S.historicoMeta[editTarget]=
       editTarget===hoje()?S.bancaInicioDia:Math.max(0,S.banca-novo);
   }
   save();ui();closeModal('modal-edit');
 }
 
-// ─── MODAL CONFIRMAÇÃO GENÉRICA ────────────────────────────────────────────
 function abrirConfirm(titulo,sub,callback){
   document.getElementById('confirm-title').textContent=titulo;
   document.getElementById('confirm-sub').textContent=sub;
-  // Clona o botão para remover listeners anteriores (evita empilhamento de callbacks)
   const btn=document.getElementById('confirm-ok');
   const novo=btn.cloneNode(true);
   btn.parentNode.replaceChild(novo,btn);
@@ -763,50 +706,69 @@ function abrirConfirm(titulo,sub,callback){
 window.closeModal=id=>document.getElementById(id).classList.remove('open');
 
 // ─── RESULTADO POR MÊS ─────────────────────────────────────────────────────
-// Fórmula correta do lucro real mensal (mês atual):
-//   lucro = banca_atual + sacado_no_mês - depositado_no_mês - banca_início_mês
+// Fórmula: lucro real = banca_atual + total_sacado_global - total_depositado_global
 //
-// Para meses passados: soma dos lucros diários fechados.
-// Base do %: bancaInicioDia do primeiro dia fechado do mês.
+// Para o mês atual: lucro = banca_atual + saq_total - dep_total
+// Percentual: lucro / dep_total * 100
+//
+// Para meses passados: não temos snapshot da banca no fim daquele mês,
+// então usamos a soma dos lucros diários fechados (único dado confiável).
+// Percentual: lucro_mês / dep_no_mês (ou base do primeiro dia se não houve dep)
 function mesList(){
   const mesesComDados=new Set();
   Object.keys(S.historico).forEach(k=>{
     const[y,m]=k.split('-');mesesComDados.add(y+'-'+m);
   });
+
+  // Inclui mês atual mesmo sem histórico fechado, se houver movimentações
+  const agora=new Date();
+  const mkAtual=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0');
+  if(S.movs.some(v=>v.data&&v.data.startsWith(mkAtual))||S.banca>0){
+    mesesComDados.add(mkAtual);
+  }
+
   const el=document.getElementById('mes-lista');
   if(!mesesComDados.size){
     el.innerHTML='<div class="empty"><span class="ei">📅</span>Nenhum mês fechado ainda</div>';
     return;
   }
-  const agora=new Date();
-  const mkAtual=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0');
+
+  // Total global de depósitos e saques (para cálculo do mês atual)
+  let depTotal=0,saqTotal=0;
+  S.movs.forEach(m=>m.tipo==='DEP'?depTotal+=m.valor:saqTotal+=m.valor);
+
   const chaves=[...mesesComDados].sort().reverse();
   el.innerHTML=chaves.map(mk=>{
     const[y,m]=mk.split('-');
     const ano=parseInt(y),mes=parseInt(m)-1;
     const isAtual=mk===mkAtual;
-    // Movimentos financeiros do mês
-    const depMes=S.movs.filter(v=>v.data&&v.data.startsWith(mk)&&v.tipo==='DEP').reduce((a,v)=>a+v.valor,0);
-    const saqMes=S.movs.filter(v=>v.data&&v.data.startsWith(mk)&&v.tipo==='SAQ').reduce((a,v)=>a+v.valor,0);
-    // Base = bancaInicioDia do primeiro dia fechado do mês
-    const diasMeta=Object.keys(S.historicoMeta).filter(k=>k.startsWith(mk)).sort();
-    const baseMes=diasMeta.length>0?S.historicoMeta[diasMeta[0]]:0;
-    let lucroMes;
+
+    let lucroMes, basePct;
+
     if(isAtual){
-      // Mês atual: lucro = banca_atual + sacado_mês - depositado_mês - banca_início_mês
-      lucroMes=S.banca+saqMes-depMes-baseMes;
-    }else{
-      // Meses passados: soma dos lucros diários fechados
-      lucroMes=Object.keys(S.historico)
+      // Mês atual: lucro real = banca_atual + tudo_sacado - tudo_depositado
+      // Essa é a única fórmula que bate com a realidade do usuário:
+      // dep=300, saq=300, banca=412,50 → lucro = 412,50 + 300 - 300 = 412,50
+      lucroMes = S.banca + saqTotal - depTotal;
+      basePct  = depTotal > 0 ? depTotal : S.bancaInicioDia;
+    } else {
+      // Meses passados: soma dos dias fechados do mês
+      lucroMes = Object.keys(S.historico)
         .filter(k=>k.startsWith(mk))
-        .reduce((a,k)=>a+S.historico[k],0);
+        .reduce((a,k)=>a+S.historico[k], 0);
+
+      // Base % = depósitos no mês, ou bancaInicioDia do primeiro dia fechado
+      const depMes = S.movs
+        .filter(v=>v.data&&v.data.startsWith(mk)&&v.tipo==='DEP')
+        .reduce((a,v)=>a+v.valor, 0);
+      const diasMeta = Object.keys(S.historicoMeta).filter(k=>k.startsWith(mk)).sort();
+      basePct = depMes > 0 ? depMes : (diasMeta.length > 0 ? S.historicoMeta[diasMeta[0]] : 0);
     }
-    // % = lucro / total depositado no mês (capital real colocado como base de risco)
-    // Se não houve depósito no mês, usa a banca de início do mês como base
-    const basePct=depMes>0?depMes:baseMes;
-    const pctMes=basePct>0?(lucroMes/basePct)*100:0;
-    const posMes=lucroMes>=0;
-    const cor=posMes?'var(--grn)':'var(--red)';
+
+    const pctMes = basePct > 0 ? (lucroMes / basePct) * 100 : 0;
+    const posMes = lucroMes >= 0;
+    const cor = posMes ? 'var(--grn)' : 'var(--red)';
+
     return `<div class="mrow">
       <div><span class="mrow-nome">${MES[mes]}</span><span class="mrow-ano">${ano}</span></div>
       <div class="mrow-right">
